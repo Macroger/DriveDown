@@ -1,13 +1,32 @@
-import { Tabs } from "expo-router";
-import React from "react";
-
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Tabs } from "expo-router";
+import React, { useState } from "react";
+
+// import the trip detector hook to start detecting trips
+import { useTripDetector } from "@/hooks/useTripDetector"; // ensure the hook is used
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const [user, setUser] = useState<any | null>(null);
+
+  /* useEffect(() => {
+    // Check for an active session on mount
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+      setUser(data.user);
+    };
+
+    fetchUser();
+  }, []);*/
+
+  const trip = useTripDetector(); // use the trip detector hook to start detecting trips
 
   return (
     <Tabs
