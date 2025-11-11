@@ -1,4 +1,5 @@
-import { supabase } from "@/supabase/supabaseClient";
+import { useOfflineUpload } from "@/hooks/useOfflineUpload";
+import { getSupabase } from "@/supabase/supabaseClient";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 
@@ -10,6 +11,7 @@ export const useTripDetector = () => {
   const [lastSpeed, setLastSpeed] = useState(0);
   const [tripStartTime, setTripStartTime] = useState<Date | null>(null);
   const [tripEndTime, setTripEndTime] = useState<Date | null>(null);
+  const [tripId, setTripId] = useState<string | null>(null);
   const [rapidEvents, setRapidEvents] = useState({
     rapidAccel: 0,
     rapidDecel: 0,
@@ -19,7 +21,11 @@ export const useTripDetector = () => {
   const STOP_SPEED_THRESHOLD = 2; // speed in m/s to consider as stopped
   const TRIP_END_DELAY = 20000; // 20 Seconds delay to confirm trip end
 
+  const { uploadTrip } = useOfflineUpload(); // use the offline upload hook
+
   useEffect(() => {
+    const supabase = getSupabase(); // get the supabase client
+
     let tripEndTimeout: ReturnType<typeof setTimeout> | null = null; // to hold the timeout for trip end confirmation
     let locationSubscription: Location.LocationSubscription; // holds the trackiing subscription (can be used to turn of the tracking))
 
@@ -88,12 +94,22 @@ export const useTripDetector = () => {
           if (currentSpeed < STOP_SPEED_THRESHOLD && tripStarted) {
             if (!tripEndTimeout) {
               // only set timeout if not already set
-              tripEndTimeout = setTimeout(() => {
+              tripEndTimeout = setTimeout(async () => {
                 setIsDriving(false);
                 setTripStarted(false);
                 setTripEndTime(new Date());
 
-                // upload trip data to supabase here
+                // create trip payload
+                const tripPayload = {
+                  user_id: user.id,
+                  trip_starttime: tripStartTime,
+                  trip_endtime: tripEndTime,
+                  trip_detectedAccelerationEvents:
+                    rapidEvents.rapidAccel + rapidEvents.rapidDecel,
+                };
+                // send tripPayload to supabase
+                const tripData = await uploadTrip(tripPayload); // upload trip using the offline upload hook
+                if (tripData) setTripId(tripData.trip_id); // set the trip ID from response
 
                 // reset per-trip states
                 setRapidEvents({ rapidAccel: 0, rapidDecel: 0 });
@@ -122,5 +138,5 @@ export const useTripDetector = () => {
     };
   }, [tripStarted]); // re-run effect if tripStarted changes
 
-  return { isDriving, tripStarted, speed }; // return the trip state
+  return { isDriving, tripStarted, speed, tripId }; // return the trip state
 };

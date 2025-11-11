@@ -1,10 +1,10 @@
 // TripDebug.tsx
-import { useTripDetector } from "@/hooks/useTripDetector";
+import { useTrip } from "@/context/TripContext";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 
 export default function TripDebug() {
-  const { isDriving, speed, tripStarted } = useTripDetector();
+  const { isDriving, speed, tripStarted } = useTrip();
 
   const statusColor = isDriving ? "#4CAF50" : "#F44336"; // green if driving, red if stopped
   const statusText = isDriving ? "DRIVING 🚗" : "STOPPED 🛑";
