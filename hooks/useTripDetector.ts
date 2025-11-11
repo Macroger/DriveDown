@@ -7,8 +7,13 @@ export const useTripDetector = () => {
   const [isDriving, setIsDriving] = useState(false);
   const [tripStarted, setTripStarted] = useState(false);
   const [speed, setSpeed] = useState(0);
+  const [lastSpeed, setLastSpeed] = useState(0);
   const [tripStartTime, setTripStartTime] = useState<Date | null>(null);
   const [tripEndTime, setTripEndTime] = useState<Date | null>(null);
+  const [rapidEvents, setRapidEvents] = useState({
+    rapidAccel: 0,
+    rapidDecel: 0,
+  });
 
   const START_SPEED_THRESHOLD = 5; // speed in m/s to consider as driving
   const STOP_SPEED_THRESHOLD = 2; // speed in m/s to consider as stopped
@@ -42,6 +47,33 @@ export const useTripDetector = () => {
         },
         (location) => {
           const currentSpeed = location.coords.speed ?? 0;
+
+          // speed difference from last reading
+          const speedDiff = currentSpeed - lastSpeed;
+
+          // detect rapid acceleration
+          if (speedDiff >= 3) {
+            // threshold for rapid acceleration
+            setRapidEvents((prev) => ({
+              ...prev,
+              rapidAccel: prev.rapidAccel + 1,
+            }));
+            console.log("Rapid Acceleration detected");
+          }
+
+          // detect rapid deceleration
+          if (speedDiff <= -3) {
+            // threshold for rapid deceleration
+            setRapidEvents((prev) => ({
+              ...prev,
+              rapidDecel: prev.rapidDecel + 1,
+            }));
+            console.log("Rapid Deceleration detected");
+          }
+
+          // update last speed
+          setLastSpeed(currentSpeed);
+
           setSpeed(currentSpeed);
 
           // check if trip is started / if not started, start trip
@@ -60,6 +92,13 @@ export const useTripDetector = () => {
                 setIsDriving(false);
                 setTripStarted(false);
                 setTripEndTime(new Date());
+
+                // upload trip data to supabase here
+
+                // reset per-trip states
+                setRapidEvents({ rapidAccel: 0, rapidDecel: 0 });
+                setLastSpeed(0);
+
                 console.log("Trip ended. Have a safe day!");
                 tripEndTimeout = null;
               }, TRIP_END_DELAY);
@@ -83,5 +122,5 @@ export const useTripDetector = () => {
     };
   }, [tripStarted]); // re-run effect if tripStarted changes
 
-  return { isDriving, tripStarted, speed, tripStartTime, tripEndTime }; // return the trip state
+  return { isDriving, tripStarted, speed }; // return the trip state
 };
