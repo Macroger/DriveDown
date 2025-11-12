@@ -1,4 +1,4 @@
-import { supabase } from "@/supabase/supabaseClient";
+import { getSupabase } from "@/supabase/supabaseClient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -26,6 +26,7 @@ export default function Login() {
 
     setLoading(true);
     try {
+      const supabase = getSupabase(); // get the supabase client
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

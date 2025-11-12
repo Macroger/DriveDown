@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.Group14.DriveDownTest1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -45,7 +49,7 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "extra": {      
+    "extra": {
       "router": {},
       "eas": {
         "projectId": "354df6da-4080-411f-a969-871fbb029e7f"

@@ -12,7 +12,7 @@ import {
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-import { supabase } from "@/supabase/supabaseClient";
+import { getSupabase } from "@/supabase/supabaseClient";
 import { Alert, StyleSheet } from "react-native";
 
 export const unstable_settings = {
@@ -38,7 +38,8 @@ export default function RootLayout() {
  * @throws Will throw an error if the sign-out process fails.
  */
 const handleLogout = async () => {
-  const { error } = await supabase.auth.signOut()
+  const supabase = getSupabase();
+  const { error } = await supabase.auth.signOut();
   if (error) {
     throw new Error(error.message);
   } else {
