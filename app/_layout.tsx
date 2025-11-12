@@ -68,9 +68,6 @@ function handleBack(): void {
   }
   // Optionally, show a message or do nothing if can't go back
 }
-  
-  <CustomHeader onBack={handleBack} onLogout={handleLogoutPress} title={APP_NAME} showLogoutButton={!isAuthScreen} />
-
 
   // ---------- Ready Flag ----------
   // Small delay to ensure RootLayout is mounted before doing any redirects.
