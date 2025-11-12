@@ -15,16 +15,20 @@ export default function CustomHeader({ onBack, onLogout, title, showLogoutButton
 
   return (
     <View style={styles.topBar}>
-      {canGoBack && (
+            {canGoBack ? (
         <Pressable style={styles.sideButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </Pressable>
+      ) : (
+        <View style={[styles.sideButton, { opacity: 0 }]} />
       )}
       <Text style={styles.title}>{title}</Text>
-      {showLogoutButton && (
+      {showLogoutButton ? (
         <Pressable style={styles.sideButton} onPress={onLogout}>
           <Ionicons name="log-out-outline" size={24} color="#fff" />
         </Pressable>
+      ) : (
+        <View style={[styles.sideButton, { opacity: 0 }]} />
       )}
     </View>
   );

@@ -63,14 +63,11 @@ const handleLogoutPress = () => {
  * If there is no previous screen, it does nothing.
  */
 function handleBack(): void {
-  if(router.canGoBack()) {
+  if (router.canGoBack()) {
     router.back();
   }
   // Optionally, show a message or do nothing if can't go back
 }
-  
-  <CustomHeader onBack={handleBack} onLogout={handleLogoutPress} title={APP_NAME} showLogoutButton={!isAuthScreen} />
-
 
   // ---------- Ready Flag ----------
   // Small delay to ensure RootLayout is mounted before doing any redirects.
@@ -116,19 +113,5 @@ return (
     </Stack>
   </ThemeProvider>
 );}
-
-const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 40,
-    paddingBottom: 12,
-  },
-  title: { fontSize: 20, fontWeight: "bold" },
-  logoutButton: { padding: 8 },
-  logoutText: { color: "#007AFF", fontWeight: "bold" },
-});
 
 
