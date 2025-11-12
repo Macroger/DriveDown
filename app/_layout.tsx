@@ -1,14 +1,19 @@
+
+import CustomHeader from "@/components/ui/custom-header";
+import { Stack, useRouter, useSegments } from "expo-router";
+import React, { useEffect, useState } from "react";
+import "react-native-reanimated";
+
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
-import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+
+import { supabase } from "@/supabase/supabaseClient";
+import { Alert, StyleSheet } from "react-native";
 
 export const unstable_settings = {
   anchor: "(tabs)", // tells Expo Router that tabs are the default navigation anchor
@@ -20,6 +25,51 @@ export default function RootLayout() {
   const segments = useSegments(); // current route segments (e.g., ["(tabs)"] or ["(auth)", "login"])
   const router = useRouter(); // router object to programmatically navigate
   const [didRedirect, setDidRedirect] = useState(false); // ensures we only redirect to login once for testing purposes
+
+  // Detect if we're on the login page or signup page
+  const isAuthScreen = segments[0] === "(auth)" && (segments[1] === "login" || segments[1] === "signup");
+
+  const APP_NAME = "Drive Down";
+
+
+
+  /**
+ * Logs out the current user and redirects to the login screen.
+ * @throws Will throw an error if the sign-out process fails.
+ */
+const handleLogout = async () => {
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    throw new Error(error.message);
+  } else {
+    router.replace("/(auth)/login"); // Redirect to login after logout
+  }
+}
+
+const handleLogoutPress = () => {
+  Alert.alert(
+    "Log Out",
+    "Are you sure you want to log out?",
+    [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log Out", style: "destructive", onPress: handleLogout }
+    ]
+  );
+};
+
+/**
+ * Handles the back button press by navigating to the previous screen if possible.
+ * If there is no previous screen, it does nothing.
+ */
+function handleBack(): void {
+  if(router.canGoBack()) {
+    router.back();
+  }
+  // Optionally, show a message or do nothing if can't go back
+}
+  
+  <CustomHeader onBack={handleBack} onLogout={handleLogoutPress} title={APP_NAME} showLogoutButton={!isAuthScreen} />
+
 
   // ---------- Ready Flag ----------
   // Small delay to ensure RootLayout is mounted before doing any redirects.
@@ -45,17 +95,39 @@ export default function RootLayout() {
   }, [ready, segments]);
 
   // ---------- Theme Provider + Stack ----------
-  return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* Modal screen, can be used anywhere in the app */}
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
-      {/* Automatically adjusts the status bar style */}
-    </ThemeProvider>
-  );
-}
+return (
+  <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <Stack
+      screenOptions={{
+        header: () =>
+          <CustomHeader
+              onBack={handleBack}
+              onLogout={handleLogoutPress}
+              title={APP_NAME}
+              showLogoutButton={!isAuthScreen}
+           />
+      }}
+    >
+      <Stack.Screen
+        name="modal"
+        options={{ presentation: "modal", title: "Modal" }}
+      />
+    </Stack>
+  </ThemeProvider>
+);}
+
+const styles = StyleSheet.create({
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 12,
+  },
+  title: { fontSize: 20, fontWeight: "bold" },
+  logoutButton: { padding: 8 },
+  logoutText: { color: "#007AFF", fontWeight: "bold" },
+});
+
+
