@@ -1,4 +1,3 @@
-import { IUserTableFetchDTO } from "@/types/Interfaces/DTOs/IUserTableDTO";
 import { getSupabase } from "./supabaseClient";
 
 /**
