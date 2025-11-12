@@ -1,7 +1,6 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { canGoBack } from "expo-router/build/global-state/routing";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 interface CustomHeaderProps {
     onBack: () => void;
