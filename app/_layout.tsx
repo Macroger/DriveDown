@@ -114,18 +114,4 @@ return (
   </ThemeProvider>
 );}
 
-const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 40,
-    paddingBottom: 12,
-  },
-  title: { fontSize: 20, fontWeight: "bold" },
-  logoutButton: { padding: 8 },
-  logoutText: { color: "#007AFF", fontWeight: "bold" },
-});
-
 
