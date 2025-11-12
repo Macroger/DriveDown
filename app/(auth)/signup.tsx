@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { supabase } from "@/supabase/supabaseClient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -15,6 +16,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const validateEmail = (email: string) => {
@@ -22,7 +24,7 @@ export default function Signup() {
     return emailRegex.test(email);
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     console.log("Signup button clicked!"); // Debug log
     
     // Validation
@@ -62,23 +64,61 @@ export default function Signup() {
       return;
     }
 
-    // Success - just show message and navigate
-    if (Platform.OS === 'web') {
-      alert(`Account created for ${email}`);
-      router.replace("/(tabs)");
-    } else {
-      Alert.alert(
-        "Success!",
-        `Account created for ${email}`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              router.replace("/(tabs)");
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: undefined,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const user = data.user;
+      console.log("Signed up user:", user);
+
+      // sign in the user automatically after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        console.error("Sign in error after signup:", signInError);
+        throw signInError;
+      }
+
+      // Success - navigate to app
+      if (Platform.OS === 'web') {
+        alert(`Account created for ${email}`);
+        router.replace("/(tabs)");
+      } else {
+        Alert.alert(
+          "Success!",
+          `Account created for ${email}`,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                router.replace("/(tabs)");
+              },
             },
-          },
-        ]
-      );
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      if (Platform.OS === 'web') {
+        alert("Signup failed. Please try again.");
+      } else {
+        Alert.alert("Signup Error", "Failed to create account. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
