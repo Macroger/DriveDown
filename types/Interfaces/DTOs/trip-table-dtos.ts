@@ -3,5 +3,6 @@ export interface ITripTableFetchDTO {
   user_id: string; // User who took the trip
   trip_starttime: string; // ISO timestamp string
   trip_endtime: string;   // ISO timestamp string
-  trip_detectedAccelerationEvents?: number; // Number of acceleration events
+  trip_rapidAccel: number; // Number of acceleration events
+  trip_rapidDecel: number; // Number of deceleration events
 }
