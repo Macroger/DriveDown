@@ -72,6 +72,5 @@ export default function TabLayout() {
         />
       </Tabs>
     </TripProvider>
-      />
   );
 }
