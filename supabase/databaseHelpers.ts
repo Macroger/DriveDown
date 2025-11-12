@@ -144,14 +144,6 @@ export const fetchRowsWithFilters = async <T>(
 };
 
 /**
- * Counts rows in a table, optionally with filters.
- *
- * @param {string} tableName - The name of the table to count rows in.
- * @param {Record<string, any>} [filters] - Optional filters to apply.
- * @returns {Promise<number>} A promise that resolves to the count of rows.
- * @throws {Error} If the database query fails.
- */
-/**
  * Counts rows in a table, optionally with filters, in a type-safe way.
  *
  * @param {string} tableName - The name of the table to count rows in.
