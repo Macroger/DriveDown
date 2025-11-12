@@ -104,8 +104,8 @@ export const useTripDetector = () => {
                   user_id: user.id,
                   trip_starttime: tripStartTime,
                   trip_endtime: tripEndTime,
-                  trip_detectedAccelerationEvents:
-                    rapidEvents.rapidAccel + rapidEvents.rapidDecel,
+                  trip_rapidAccel: rapidEvents.rapidAccel,
+                  trip_rapidDecel: rapidEvents.rapidDecel,
                 };
                 // send tripPayload to supabase
                 const tripData = await uploadTrip(tripPayload); // upload trip using the offline upload hook
