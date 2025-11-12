@@ -1,5 +1,5 @@
 import { IUserTableFetchDTO } from "@/types/Interfaces/DTOs/IUserTableDTO";
-import { supabase } from "./supabaseClient";
+import { getSupabase } from "./supabaseClient";
 
 /**
  * Fetches all rows from a specified table in the database.
@@ -9,12 +9,13 @@ import { supabase } from "./supabaseClient";
  * @throws {Error} If the database query fails.
  */
 export const fetchAllRows = async <T>(tableName: string): Promise<T[]> => {
-  const { data, error } = await supabase
-  .from(tableName)
-  .select("*");
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from(tableName).select("*");
 
   if (error) {
-    throw new Error(`Error fetching rows from table "${tableName}": ${error.message}`);
+    throw new Error(
+      `Error fetching rows from table "${tableName}": ${error.message}`
+    );
   }
 
   return data || [];
@@ -32,6 +33,7 @@ export const fetchRowById = async <T>(
   tableName: string,
   id: number
 ): Promise<T | null> => {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(tableName)
     .select("*")
@@ -53,25 +55,31 @@ export const fetchRowById = async <T>(
  * const newUser = await addData<IUserTableDTO>("users", { name: "John Doe", age: 30 });
  */
 export const addRows = async <T>(
-    tableName: string,
-    newData: T[]): Promise<T[]> => {
+  tableName: string,
+  newData: T[]
+): Promise<T[]> => {
+  const supabase = getSupabase();
   const { data, error } = await supabase
-  .from(tableName)
-  .insert(newData)
-  .select();
+    .from(tableName)
+    .insert(newData)
+    .select();
 
   // Check for errors during insertion
   if (error) {
-    throw new Error(`Error inserting data into table "${tableName}": ${error.message}`);
+    throw new Error(
+      `Error inserting data into table "${tableName}": ${error.message}`
+    );
   }
 
   // Ensure that data was returned after insertion
   if (!data || data.length === 0) {
-    throw new Error(`No data was returned after inserting into table "${tableName}".`);
+    throw new Error(
+      `No data was returned after inserting into table "${tableName}".`
+    );
   }
 
   // Return the inserted data
-  return data; 
+  return data;
 };
 
 /**
@@ -85,10 +93,8 @@ export const deleteRowById = async (
   tableName: string,
   id: number
 ): Promise<void> => {
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq("id", id);
+  const supabase = getSupabase();
+  const { error } = await supabase.from(tableName).delete().eq("id", id);
 
   if (error) throw error;
 };
@@ -107,6 +113,7 @@ export const updateRowById = async <T>(
   id: number,
   updatedData: T
 ): Promise<T | null> => {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(tableName)
     .update(updatedData)
@@ -130,6 +137,7 @@ export const fetchRowsWithFilters = async <T>(
   tableName: string,
   filters: Record<string, any>
 ): Promise<T[]> => {
+  const supabase = getSupabase();
   let query = supabase.from(tableName).select("*");
 
   // Dynamically apply filters
@@ -155,7 +163,10 @@ export const countRows = async <T>(
   tableName: string,
   filters?: Partial<T>
 ): Promise<number> => {
-  let query = supabase.from(tableName).select("*", { count: "exact", head: true });
+  const supabase = getSupabase();
+  let query = supabase
+    .from(tableName)
+    .select("*", { count: "exact", head: true });
 
   // Apply filters if provided
   if (filters) {
@@ -186,6 +197,8 @@ export const fetchPaginatedRows = async <T>(
 ): Promise<T[]> => {
   const start = (page - 1) * pageSize;
   const end = start + pageSize - 1;
+
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from(tableName)
