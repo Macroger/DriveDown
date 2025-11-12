@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { supabase } from "@/supabase/supabaseClient";
+import { getSupabase } from "@/supabase/supabaseClient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -9,7 +9,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput
+  TextInput,
 } from "react-native";
 
 export default function Signup() {
@@ -26,10 +26,10 @@ export default function Signup() {
 
   const handleSignup = async () => {
     console.log("Signup button clicked!"); // Debug log
-    
+
     // Validation
     if (!email || !password || !confirmPassword) {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === "web") {
         alert("Please fill in all fields");
       } else {
         Alert.alert("Error", "Please fill in all fields");
@@ -38,7 +38,7 @@ export default function Signup() {
     }
 
     if (!validateEmail(email)) {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === "web") {
         alert("Please enter a valid email address");
       } else {
         Alert.alert("Error", "Please enter a valid email address");
@@ -47,7 +47,7 @@ export default function Signup() {
     }
 
     if (password.length < 6) {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === "web") {
         alert("Password must be at least 6 characters long");
       } else {
         Alert.alert("Error", "Password must be at least 6 characters long");
@@ -56,7 +56,7 @@ export default function Signup() {
     }
 
     if (password !== confirmPassword) {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === "web") {
         alert("Passwords do not match");
       } else {
         Alert.alert("Error", "Passwords do not match");
@@ -66,6 +66,7 @@ export default function Signup() {
 
     setLoading(true);
     try {
+      const supabase = getSupabase(); // get the supabase client
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -93,29 +94,28 @@ export default function Signup() {
       }
 
       // Success - navigate to app
-      if (Platform.OS === 'web') {
+      if (Platform.OS === "web") {
         alert(`Account created for ${email}`);
         router.replace("/(tabs)");
       } else {
-        Alert.alert(
-          "Success!",
-          `Account created for ${email}`,
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                router.replace("/(tabs)");
-              },
+        Alert.alert("Success!", `Account created for ${email}`, [
+          {
+            text: "OK",
+            onPress: () => {
+              router.replace("/(tabs)");
             },
-          ]
-        );
+          },
+        ]);
       }
     } catch (error) {
       console.error("Signup error:", error);
-      if (Platform.OS === 'web') {
+      if (Platform.OS === "web") {
         alert("Signup failed. Please try again.");
       } else {
-        Alert.alert("Signup Error", "Failed to create account. Please try again.");
+        Alert.alert(
+          "Signup Error",
+          "Failed to create account. Please try again."
+        );
       }
     } finally {
       setLoading(false);
@@ -162,7 +162,7 @@ export default function Signup() {
       <Pressable
         style={({ pressed }) => [
           styles.button,
-          pressed && styles.buttonPressed
+          pressed && styles.buttonPressed,
         ]}
         onPress={handleSignup}
         accessible={true}
@@ -175,9 +175,7 @@ export default function Signup() {
         onPress={() => router.push("/(auth)/login")}
         style={styles.link}
       >
-        <ThemedText type="link">
-          Already have an account? Log in
-        </ThemedText>
+        <ThemedText type="link">Already have an account? Log in</ThemedText>
       </Pressable>
     </ThemedView>
   );
