@@ -63,7 +63,7 @@ const handleLogoutPress = () => {
  * If there is no previous screen, it does nothing.
  */
 function handleBack(): void {
-  if(router.canGoBack()) {
+  if (router.canGoBack()) {
     router.back();
   }
   // Optionally, show a message or do nothing if can't go back
