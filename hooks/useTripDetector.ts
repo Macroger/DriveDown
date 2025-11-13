@@ -1,142 +1,180 @@
 import { useOfflineUpload } from "@/hooks/useOfflineUpload";
 import { getSupabase } from "@/supabase/supabaseClient";
 import * as Location from "expo-location";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-// a hook that uses expo-location to detect if the user is driving to start and stop a trip
+let isTrackingActive = false;
+
 export const useTripDetector = () => {
   const [isDriving, setIsDriving] = useState(false);
   const [tripStarted, setTripStarted] = useState(false);
   const [speed, setSpeed] = useState(0);
-  const [lastSpeed, setLastSpeed] = useState(0);
-  const [tripStartTime, setTripStartTime] = useState<Date | null>(null);
-  const [tripEndTime, setTripEndTime] = useState<Date | null>(null);
   const [tripId, setTripId] = useState<string | null>(null);
-  const [rapidEvents, setRapidEvents] = useState({
-    rapidAccel: 0,
-    rapidDecel: 0,
-  });
 
-  const START_SPEED_THRESHOLD = 5; // speed in m/s to consider as driving
-  const STOP_SPEED_THRESHOLD = 2; // speed in m/s to consider as stopped
-  const TRIP_END_DELAY = 20000; // 20 Seconds delay to confirm trip end
+  const lastRawSpeedRef = useRef(0);
+  const lastTimestampRef = useRef<number | null>(null);
+  const tripStartTimeRef = useRef<Date | null>(null);
+  const tripEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rapidEventsRef = useRef({ rapidAccel: 0, rapidDecel: 0 });
+  const locationSubscriptionRef = useRef<Location.LocationSubscription | null>(
+    null
+  );
 
-  const { uploadTrip } = useOfflineUpload(); // use the offline upload hook
+  const START_SPEED_THRESHOLD = 0.3;
+  const STOP_SPEED_THRESHOLD = 0.5;
+  const TRIP_END_DELAY = 10000; // 10 seconds for testing
+
+  const { uploadTrip } = useOfflineUpload();
+  const uploadTripRef = useRef(uploadTrip);
+  useEffect(() => {
+    uploadTripRef.current = uploadTrip;
+  }, [uploadTrip]);
 
   useEffect(() => {
-    const supabase = getSupabase(); // get the supabase client
+    const supabase = getSupabase();
 
-    let tripEndTimeout: ReturnType<typeof setTimeout> | null = null; // to hold the timeout for trip end confirmation
-    let locationSubscription: Location.LocationSubscription; // holds the trackiing subscription (can be used to turn of the tracking))
+    // Listen to auth state changes
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          console.log("✅ User logged in, starting tracking...");
+          startTracking(session.user.id);
+        } else {
+          console.log("❌ User logged out, stopping tracking...");
+          stopTracking();
+        }
+      }
+    );
 
-    const startTracking = async () => {
+    // Also check if already logged in on mount
+    (async () => {
       const {
         data: { user },
-        error,
       } = await supabase.auth.getUser();
-      if (error || !user) {
-        return;
+      if (user) {
+        console.log("✅ Already logged in, starting tracking...");
+        startTracking(user.id);
       }
-      const { status } = await Location.requestForegroundPermissionsAsync(); // ask user for location permission
-      if (status !== "granted") {
-        console.warn("Location permission not granted");
-        return;
-      }
-
-      locationSubscription = await Location.watchPositionAsync(
-        {
-          // NOTE: change these settings to balance accuracy and battery usage
-          // (lower interval when recording trip events i.e. rapidAccel, so it has more data points to work with)
-          accuracy: Location.Accuracy.High,
-          timeInterval: 5000, // get location every 5 seconds
-          distanceInterval: 5, // 5 meters so that load on battery is low
-        },
-        (location) => {
-          const currentSpeed = location.coords.speed ?? 0;
-
-          // speed difference from last reading
-          const speedDiff = currentSpeed - lastSpeed;
-
-          // detect rapid acceleration
-          if (speedDiff >= 3) {
-            // threshold for rapid acceleration
-            setRapidEvents((prev) => ({
-              ...prev,
-              rapidAccel: prev.rapidAccel + 1,
-            }));
-            console.log("Rapid Acceleration detected");
-          }
-
-          // detect rapid deceleration
-          if (speedDiff <= -3) {
-            // threshold for rapid deceleration
-            setRapidEvents((prev) => ({
-              ...prev,
-              rapidDecel: prev.rapidDecel + 1,
-            }));
-            console.log("Rapid Deceleration detected");
-          }
-
-          // update last speed
-          setLastSpeed(currentSpeed);
-
-          setSpeed(currentSpeed);
-
-          // check if trip is started / if not started, start trip
-          if (currentSpeed >= START_SPEED_THRESHOLD && !tripStarted) {
-            setIsDriving(true);
-            setTripStarted(true);
-            setTripStartTime(new Date());
-            console.log("Whoohoo! Trip started");
-          }
-
-          // check if trip is ended /
-          if (currentSpeed < STOP_SPEED_THRESHOLD && tripStarted) {
-            if (!tripEndTimeout) {
-              // only set timeout if not already set
-              tripEndTimeout = setTimeout(async () => {
-                setIsDriving(false);
-                setTripStarted(false);
-                setTripEndTime(new Date());
-
-                // create trip payload
-                const tripPayload = {
-                  user_id: user.id,
-                  trip_starttime: tripStartTime,
-                  trip_endtime: tripEndTime,
-                  trip_rapidAccel: rapidEvents.rapidAccel,
-                  trip_rapidDecel: rapidEvents.rapidDecel,
-                };
-                // send tripPayload to supabase
-                const tripData = await uploadTrip(tripPayload); // upload trip using the offline upload hook
-                if (tripData) setTripId(tripData.trip_id); // set the trip ID from response
-
-                // reset per-trip states
-                setRapidEvents({ rapidAccel: 0, rapidDecel: 0 });
-                setLastSpeed(0);
-
-                console.log("Trip ended. Have a safe day!");
-                tripEndTimeout = null;
-              }, TRIP_END_DELAY);
-            }
-          } else {
-            // if speed goes above threshold again, clear the timeout
-            if (tripEndTimeout) {
-              clearTimeout(tripEndTimeout);
-              tripEndTimeout = null;
-            }
-          }
-        }
-      );
-    };
-
-    startTracking(); // initiate the tracking on mount
+    })();
 
     return () => {
-      if (locationSubscription) locationSubscription.remove(); // stop tracking when done trip
-      if (tripEndTimeout) clearTimeout(tripEndTimeout); // clear the timeout if component unmounts
+      listener.subscription.unsubscribe();
+      stopTracking();
     };
-  }, [tripStarted]); // re-run effect if tripStarted changes
+  }, []);
 
-  return { isDriving, tripStarted, speed, tripId }; // return the trip state
+  const startTracking = async (userId: string) => {
+    if (isTrackingActive) return;
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      console.warn("Location permission denied");
+      return;
+    }
+
+    isTrackingActive = true;
+
+    locationSubscriptionRef.current = await Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.High,
+        timeInterval: 1000,
+        distanceInterval: 0,
+      },
+      async (location) => {
+        const currentSpeed = location.coords.speed ?? 0;
+        const now = Date.now();
+        setSpeed(currentSpeed);
+
+        // Initialize timestamp
+        if (lastTimestampRef.current === null) {
+          lastTimestampRef.current = now;
+          lastRawSpeedRef.current = currentSpeed;
+          return;
+        }
+
+        const deltaTime = (now - lastTimestampRef.current) / 1000;
+        if (deltaTime <= 0) return;
+
+        const acceleration =
+          (currentSpeed - lastRawSpeedRef.current) / deltaTime;
+
+        if (acceleration >= 1.5) rapidEventsRef.current.rapidAccel += 1;
+        if (acceleration <= -1.5) rapidEventsRef.current.rapidDecel += 1;
+
+        // Trip start
+        if (
+          !tripStartTimeRef.current &&
+          currentSpeed >= START_SPEED_THRESHOLD
+        ) {
+          tripStartTimeRef.current = new Date();
+          setIsDriving(true);
+          setTripStarted(true);
+          console.log("🚗 Trip started");
+        }
+
+        // Trip end
+        if (tripStartTimeRef.current && currentSpeed < STOP_SPEED_THRESHOLD) {
+          if (!tripEndTimeoutRef.current) {
+            tripEndTimeoutRef.current = setTimeout(async () => {
+              setIsDriving(false);
+              setTripStarted(false);
+
+              const endtime = new Date();
+              const tripPayload = {
+                user_id: userId,
+                trip_starttime:
+                  tripStartTimeRef.current?.toISOString() ??
+                  new Date().toISOString(),
+                trip_endtime: endtime.toISOString(),
+                trip_rapidAccel: rapidEventsRef.current.rapidAccel,
+                trip_rapidDecel: rapidEventsRef.current.rapidDecel,
+              };
+
+              console.log("📤 Uploading trip:", tripPayload);
+              const tripData = await uploadTripRef.current(tripPayload);
+              if (tripData) setTripId(tripData.trip_id);
+
+              // Reset
+              rapidEventsRef.current = { rapidAccel: 0, rapidDecel: 0 };
+              tripStartTimeRef.current = null;
+              lastRawSpeedRef.current = 0;
+              lastTimestampRef.current = null;
+              tripEndTimeoutRef.current = null;
+            }, TRIP_END_DELAY);
+          }
+        } else if (tripEndTimeoutRef.current) {
+          clearTimeout(tripEndTimeoutRef.current);
+          tripEndTimeoutRef.current = null;
+        }
+
+        lastRawSpeedRef.current = currentSpeed;
+        lastTimestampRef.current = now;
+      }
+    );
+
+    console.log("✅ Location tracking started");
+  };
+
+  const stopTracking = () => {
+    if (locationSubscriptionRef.current) {
+      locationSubscriptionRef.current.remove();
+      locationSubscriptionRef.current = null;
+    }
+
+    if (tripEndTimeoutRef.current) {
+      clearTimeout(tripEndTimeoutRef.current);
+      tripEndTimeoutRef.current = null;
+    }
+
+    isTrackingActive = false;
+    setIsDriving(false);
+    setTripStarted(false);
+    tripStartTimeRef.current = null;
+    lastRawSpeedRef.current = 0;
+    lastTimestampRef.current = null;
+    rapidEventsRef.current = { rapidAccel: 0, rapidDecel: 0 };
+    console.log("🛑 Tracking stopped");
+  };
+
+  return { isDriving, tripStarted, speed, tripId };
 };
