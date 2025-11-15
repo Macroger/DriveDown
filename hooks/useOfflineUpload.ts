@@ -17,7 +17,9 @@ export const useOfflineUpload = () => {
   // function to retry uploading locally saved trip data
   const retryLocalUploads = useCallback(async () => {
     try {
-      const supabase = getSupabase(); // get the supabase client
+      const supabase = getSupabase();
+      const session = await supabase.auth.getSession();
+      const access_token = session.data.session?.access_token;
 
       const keys = await AsyncStorage.getAllKeys();
       const tripKeys = keys.filter((k) => k.startsWith("trip-"));
@@ -27,20 +29,26 @@ export const useOfflineUpload = () => {
         if (!tripJson) continue;
         const tripData = JSON.parse(tripJson);
 
-        const { data, error } = await supabase
-          .from("trip")
-          .insert(tripData)
-          .select()
-          .single();
-        if (!error) {
-          console.log("Successfully uploaded local trip data with key:", key);
-          await AsyncStorage.removeItem(key); // remove after successful upload
+        const res = await fetch(
+          "https://dagsbgwwdhosdgppojks.supabase.co/functions/v1/calculate-trip-score",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(tripData),
+          }
+        );
+
+        if (res.ok) {
+          console.log("Uploaded offline trip:", key);
+          await AsyncStorage.removeItem(key);
         } else {
-          console.error("Error uploading local trip data for key:", key, error);
+          console.log("Failed to upload offline trip:", key);
         }
       }
-    } catch (error) {
-      console.error("Error during retrying local uploads:", error);
+    } catch (err) {
+      console.error("Error retrying offline uploads:", err);
     }
   }, []);
 
@@ -50,29 +58,36 @@ export const useOfflineUpload = () => {
       try {
         const supabase = getSupabase(); // get the supabase client
         // try uploading to supabase
-        const { data, error } = await supabase
-          .from("trip")
-          .insert(tripData)
-          .select()
-          .single();
+        const session = await supabase.auth.getSession();
+        const access_token = session.data.session?.access_token;
 
-        if (!error && data) {
-          console.log("Trip data uploaded successfully with ID:", data.trip_id);
-          /* Here is where you can add logic to send data to other tables connected to trip_id as you will have the trip_id available with: data.trip_id */
+        const res = await fetch(
+          "https://dagsbgwwdhosdgppojks.supabase.co/functions/v1/calculate-trip-score",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(tripData),
+          }
+        );
 
-          return data;
-        } else {
-          console.error("Error uploading trip data:", error);
+        if (!res.ok) {
+          // Upload failed → save locally
           await saveTripLocally(tripData);
+          console.error("Edge function error:", await res.text());
+          return null;
         }
+
+        const data = await res.json();
+        console.log("Trip created with edge function:", data.trip.trip_id);
+
+        return data.trip; // contains trip_id, score, etc.
       } catch (error) {
         console.error("Error during trip upload:", error);
         await saveTripLocally(tripData);
+        return null;
       }
-
-      // retry any local uploads after attempting this upload
-      await retryLocalUploads();
-      return null; // indicate upload failure
     },
     [saveTripLocally, retryLocalUploads]
   );

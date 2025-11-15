@@ -20,9 +20,9 @@ export const useTripDetector = () => {
     null
   );
 
-  const START_SPEED_THRESHOLD = 0.3;
-  const STOP_SPEED_THRESHOLD = 0.5;
-  const TRIP_END_DELAY = 10000; // 10 seconds for testing
+  const START_SPEED_THRESHOLD = 0.4;
+  const STOP_SPEED_THRESHOLD = 1.5;
+  const TRIP_END_DELAY = 30000; // 30 seconds for testing
 
   const { uploadTrip } = useOfflineUpload();
   const uploadTripRef = useRef(uploadTrip);
@@ -98,8 +98,8 @@ export const useTripDetector = () => {
         const acceleration =
           (currentSpeed - lastRawSpeedRef.current) / deltaTime;
 
-        if (acceleration >= 1.5) rapidEventsRef.current.rapidAccel += 1;
-        if (acceleration <= -1.5) rapidEventsRef.current.rapidDecel += 1;
+        if (acceleration >= 2.5) rapidEventsRef.current.rapidAccel += 1;
+        if (acceleration <= -3.0) rapidEventsRef.current.rapidDecel += 1;
 
         // Trip start
         if (
