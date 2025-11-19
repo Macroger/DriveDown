@@ -6,7 +6,6 @@ import { Tabs } from "expo-router";
 import React, { useState } from "react";
 
 // import the trip detector hook to start detecting trips
-import { TripProvider } from "@/context/TripContext";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -35,42 +34,40 @@ export default function TabLayout() {
   // const trip = useTripDetector(); // use the trip detector hook to start detecting trips
 
   return (
-    <TripProvider>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-          headerShown: false,
-          tabBarButton: HapticTab,
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        headerShown: false,
+        tabBarButton: HapticTab,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "HOME",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="house.fill" color={color} />
+          ),
         }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: "HOME",
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="house.fill" color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="explore"
-          options={{
-            title: "Explore",
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="paperplane.fill" color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="test"
-          options={{
-            title: "test",
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="smiley.fill" color={color} />
-            ),
-          }}
-        />
-      </Tabs>
-    </TripProvider>
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: "Explore",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="paperplane.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="test"
+        options={{
+          title: "test",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="smiley.fill" color={color} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
