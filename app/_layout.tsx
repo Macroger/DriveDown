@@ -86,8 +86,8 @@ export default function RootLayout() {
       router.replace("/(auth)/login"); // replace so back button doesn't go back to empty root
       setDidRedirect(true); // mark that we already redirected to prevent loops
     }
-  }, [ready, segments]);
-
+  }, [ready, segments, didRedirect, router]);
+  
   // ---------- Theme Provider + Stack ----------
   return (
     <TripProvider>

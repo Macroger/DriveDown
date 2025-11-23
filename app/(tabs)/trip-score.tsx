@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import ScoreRing from '../../components/ui/score-ring';
 import StatCard from '../../components/ui/stat-card';
+import { Picker } from '@react-native-picker/picker';
 
 
 interface TripScoreDetails {
@@ -32,22 +33,31 @@ export default function TripScoreScreen(){
   const theme = Colors[colorScheme ?? 'light'];
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
 
+  // When summaries are loaded, set the default selected trip
+useEffect(() => {
+  if (summaries.length > 0 && selectedTripId === null) {
+    setSelectedTripId(summaries[0].id); // or .trip_id if you rename
+  }
+}, [summaries, selectedTripId]);
+
   // Fetch the trip score details using the edge function
   useEffect(() => {
-    fetch('https://dagsbgwwdhosdgppojks.functions.supabase.co/fetch-trip-score-details')
-      .then(res => res.json())
-      .then(data => setDetails(data))
-      .catch(() => setDetails({ 
-        tripscore_value: null, 
-        trip_duration: null, 
-        trip_rapidAccel: null, 
-        trip_rapidDecel: null, 
-        tripinsight_description: null, 
-        tripinsight_recommendation: null, 
-        error: 'Failed to fetch trip data.' 
-      }))
-      .finally(() => setLoading(false));
-  }, []);
+  if (selectedTripId === null) return;
+  setLoading(true);
+  fetch(`https://dagsbgwwdhosdgppojks.functions.supabase.co/fetch-trip-score-details?trip_id=${selectedTripId}`)
+    .then(res => res.json())
+    .then(data => setDetails(data))
+    .catch(() => setDetails({ 
+      tripscore_value: null, 
+      trip_duration: null, 
+      trip_rapidAccel: null, 
+      trip_rapidDecel: null, 
+      tripinsight_description: null, 
+      tripinsight_recommendation: null, 
+      error: 'Failed to fetch trip data.' 
+    }))
+    .finally(() => setLoading(false));
+}, [selectedTripId]);
 
   // Fetch a series of previous trip summaries
   useEffect(() => {
@@ -72,6 +82,17 @@ export default function TripScoreScreen(){
 
   return (
     <View style={styles.container}>
+      <Picker
+  selectedValue={selectedTripId}
+  onValueChange={itemValue => setSelectedTripId(itemValue)}
+  style={{ marginBottom: 16 }} >
+  {summaries.map(trip => (
+    <Picker.Item
+      key={trip.id}
+      label={`${trip.date} (Score: ${trip.score})`}
+      value={trip.id} />
+      ))}
+    </Picker>
       <Text style={[styles.title, { color: theme.text }]}>Trip Score</Text>
       <ScoreRing score={details.tripscore_value ?? 0} />
       <View style={styles.statsRow}>
