@@ -2,11 +2,9 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router } from 'expo-router';
 import React, { useEffect, useState} from 'react';
-import { Button, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Button, StyleSheet, Text, View } from 'react-native';
 import ScoreRing from '../../components/ui/score-ring';
 import StatCard from '../../components/ui/stat-card';
-import { fetchRowsWithJoin } from '@/supabase/databaseHelpers';
-import { ITripTableFetchDTO } from '@/types/Interfaces/DTOs/trip-table-dtos';
 
 interface TripScoreDetails {
   tripscore_value: number | null;
