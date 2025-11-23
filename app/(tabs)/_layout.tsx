@@ -3,13 +3,13 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Tabs } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 
 // import the trip detector hook to start detecting trips
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const [user, setUser] = useState<any | null>(null);
+  //const [user, setUser] = useState<any | null>(null);
 
   /* useEffect(() => {
     // Check for an active session on mount
@@ -25,11 +25,11 @@ export default function TabLayout() {
     fetchUser();
   }, []);*/
 
-  const handleTripEnd = (tripId: string) => {
-    console.log("Trip ended with ID:", tripId);
+  // const handleTripEnd = (tripId: string) => {
+  //   console.log("Trip ended with ID:", tripId);
 
-    // You can add additional logic here, such as creating trip summaries
-  };
+  //   // You can add additional logic here, such as creating trip summaries
+  // };
 
   // const trip = useTripDetector(); // use the trip detector hook to start detecting trips
 
