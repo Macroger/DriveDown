@@ -2,6 +2,7 @@ import CustomHeader from "@/components/ui/custom-header";
 import { Stack, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useState } from "react";
 import "react-native-reanimated";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import {
   DarkTheme,
@@ -90,26 +91,28 @@ export default function RootLayout() {
   
   // ---------- Theme Provider + Stack ----------
   return (
-    <TripProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack
-          screenOptions={{
-            header: () => (
-              <CustomHeader
-                onBack={handleBack}
-                onLogout={handleLogoutPress}
-                title={APP_NAME}
-                showLogoutButton={!isAuthScreen}
-              />
-            ),
-          }}
-        >
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
-          />
-        </Stack>
-      </ThemeProvider>
-    </TripProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <TripProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Stack
+            screenOptions={{
+              header: () => (
+                <CustomHeader
+                  onBack={handleBack}
+                  onLogout={handleLogoutPress}
+                  title={APP_NAME}
+                  showLogoutButton={!isAuthScreen}
+                />
+              ),
+            }}
+          >
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: "modal", title: "Modal" }}
+            />
+          </Stack>
+        </ThemeProvider>
+      </TripProvider>
+    </GestureHandlerRootView>
   );
 }
