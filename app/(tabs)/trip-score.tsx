@@ -1,10 +1,10 @@
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { router } from 'expo-router';
-import React, { useEffect, useState} from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import ScoreRing from '../../components/ui/score-ring';
 import StatCard from '../../components/ui/stat-card';
+
 
 interface TripScoreDetails {
   tripscore_value: number | null;
@@ -16,12 +16,23 @@ interface TripScoreDetails {
   error?: string;
 }
 
-export default function TripScoreScreen() {
+interface TripSummary {
+  id: number;
+  date: string;
+  score: number;
+  summary: string;
+}
+
+export default function TripScoreScreen(){
   const [details, setDetails] = useState<TripScoreDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [summaries, setSummaries] = useState<TripSummary[]>([]);
+  const [summariesLoading, setSummariesLoading] = useState(true);
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
 
+  // Fetch the trip score details using the edge function
   useEffect(() => {
     fetch('https://dagsbgwwdhosdgppojks.functions.supabase.co/fetch-trip-score-details')
       .then(res => res.json())
@@ -36,6 +47,16 @@ export default function TripScoreScreen() {
         error: 'Failed to fetch trip data.' 
       }))
       .finally(() => setLoading(false));
+  }, []);
+
+  // Fetch a series of previous trip summaries
+  useEffect(() => {
+    setSummariesLoading(true);
+    fetch('https://dagsbgwwdhosdgppojks.functions.supabase.co/fetch-trip-score-summaries?limit=5')
+      .then(res => res.json())
+      .then(data => setSummaries(Array.isArray(data) ? data : []))
+      .catch(() => setSummaries([]))
+      .finally(() => setSummariesLoading(false));
   }, []);
 
   if (loading) return <Text>Loading...</Text>;
@@ -54,7 +75,7 @@ export default function TripScoreScreen() {
       <Text style={[styles.title, { color: theme.text }]}>Trip Score</Text>
       <ScoreRing score={details.tripscore_value ?? 0} />
       <View style={styles.statsRow}>
-        <StatCard label="Score" value={details.tripscore_value !== null ? details.tripscore_value.toString() : 'N/A'} />
+        <StatCard label="Safety Events" value={details.tripscore_value !== null ? details.tripscore_value.toString() : 'N/A'} />
         <StatCard label="Duration" value={details.trip_duration ?? 'N/A'} />
       </View>
       <View style={styles.trends}>
@@ -65,9 +86,27 @@ export default function TripScoreScreen() {
           {details.tripinsight_recommendation ?? ''}
         </Text>
       </View>
-      <Button
-        title="Back"
-        onPress={() => router.replace('/(tabs)/explore')}
+
+      {/* Previous Scores Section */}
+      <Text style={[styles.recentTripsTitle, { color: theme.text }]}>Previous Scores</Text>
+      <FlatList
+        data={summaries}
+        keyExtractor={item => item.id.toString()}
+        style={styles.recentTripsList}
+        ListEmptyComponent={
+          summariesLoading ? (
+            <Text style={{ color: theme.text }}>Loading...</Text>
+          ) : (
+            <Text style={{ color: theme.text }}>No recent trips found.</Text>
+          )
+        }
+        renderItem={({ item }) => (
+          <View style={[styles.tripCard, { backgroundColor: theme.background, borderWidth: 1, borderColor: theme.tint }]}>
+            <Text style={[styles.tripDate, { color: theme.text }]}>{item.date}</Text>
+            <Text style={[styles.tripScore, { color: theme.tint }]}>{item.score}</Text>
+            <Text style={[styles.tripSummary, { color: theme.text }]}>{item.summary}</Text>
+          </View>
+        )}
       />
     </View>
   );
@@ -75,6 +114,7 @@ export default function TripScoreScreen() {
 
 
 
+// Move styles above component to avoid usage before declaration
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
