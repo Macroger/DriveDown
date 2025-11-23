@@ -60,9 +60,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="driver-score"
+        name="trip-score"
         options={{
-          title: "Score",
+          title: "Trip",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="trophy.fill" color={color} />
           ),

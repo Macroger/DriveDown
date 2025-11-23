@@ -17,7 +17,37 @@ export const fetchAllRows = async <T>(tableName: string): Promise<T[]> => {
     );
   }
 
-  return data || [];
+  if (!Array.isArray(data)) {
+    throw new Error(`Unexpected data format returned from table "${tableName}".`);
+  }
+  return data as T[];
+};
+
+/**
+ * Fetches rows from a table with a related foreign table join.
+ * @param {string} tableName - The main table to fetch from.
+ * @param {string} join - The related table and columns to join, e.g., "trip_score(score)".
+ * @param {number} page - The page number to fetch (1-based).
+ * @param {number} pageSize - The number of rows per page.
+ * @returns {Promise<T[]>} A promise that resolves to an array of joined rows.
+ */
+export const fetchRowsWithJoin = async <T >(
+  tableName: string,
+  join: string,
+  page: number,
+  pageSize: number
+): Promise<T[]> => {
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize - 1;
+  const supabase = getSupabase();
+
+  const { data, error } = await supabase
+    .from(tableName)
+    .select(`*, ${join}`)
+    .range(start, end);
+
+  if (error) throw error;
+  return (data as unknown as T[]) || [];
 };
 
 /**
@@ -205,5 +235,5 @@ export const fetchPaginatedRows = async <T>(
     .range(start, end);
 
   if (error) throw error;
-  return data || [];
+  return (data as unknown as T[]) || [];
 };
