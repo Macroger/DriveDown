@@ -47,7 +47,7 @@ export default function ScoreRing({ score = 0, size = 120, strokeWidth = 12 }: P
       </Svg>
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: theme.text, position: 'absolute', alignSelf: 'center', fontSize: 24, fontWeight: 'bold' }}>
-          {score}%</Text>
+          {score}</Text>
       </View>
     </View>
   );

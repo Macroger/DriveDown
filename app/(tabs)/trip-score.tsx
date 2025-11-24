@@ -26,7 +26,7 @@ interface TripSummary {
 }
 
 export default function TripScoreScreen(){
-  
+  const [safetyEvents, setSafetyEvents] = useState<number | null>(null);
   const [details, setDetails] = useState<TripScoreDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [summaries, setSummaries] = useState<TripSummary[]>([]);
@@ -42,19 +42,9 @@ export default function TripScoreScreen(){
     }))
   );
 
-  console.log('TripScoreScreen render', {
-  loading,
-  details,
-  selectedTripId,
-  summaries,
-  summariesLoading,
-  dropdownItems,
-});
-
   // When summaries are loaded, set the default selected trip
 // Keep dropdownItems in sync with summaries
 useEffect(() => {
-  console.log('useEffect: Sync dropdownItems with summaries', { summaries });
   setDropdownItems(
     summaries.map(trip => ({
       label: `${trip.date} (Score: ${trip.score})`,
@@ -65,7 +55,6 @@ useEffect(() => {
 
   // Fetch the trip score details using the edge function
   useEffect(() => {
-    console.log('useEffect: Fetch trip score details', { selectedTripId });
   if (selectedTripId === null) return;
   setLoading(true);
   fetch(`https://dagsbgwwdhosdgppojks.functions.supabase.co/fetch-trip-score-details?trip_id=${selectedTripId}`)
@@ -80,12 +69,13 @@ useEffect(() => {
       tripinsight_recommendation: null, 
       error: 'Failed to fetch trip data.' 
     }))
-    .finally(() => setLoading(false));
-}, [selectedTripId]);
+    .finally(() =>{ 
+      setSafetyEvents((details?.trip_rapidAccel ?? 0) + (details?.trip_rapidDecel ?? 0));
+      setLoading(false); });
+}, [selectedTripId, details?.trip_rapidAccel, details?.trip_rapidDecel]);
 
   // Fetch a series of previous trip summaries
   useEffect(() => {
-    console.log('useEffect: Fetch previous trip summaries');
     setSummariesLoading(true);
     fetch('https://dagsbgwwdhosdgppojks.functions.supabase.co/fetch-trip-score-summaries?limit=5')
       .then(res => res.json())
@@ -114,6 +104,7 @@ useEffect(() => {
 
   return (
     <View style={styles.container}>
+          <Text style={[styles.title, { color: theme.text, textAlign: 'center' }] }>Trip Score</Text>
     {/* Picker section with card styling */}
     <DropDownPicker
       open={open}
@@ -144,11 +135,11 @@ useEffect(() => {
       zIndex={1000} // To ensure it appears above other elements
       zIndexInverse={3000}
     />
-
-    <Text style={[styles.title, { color: theme.text }]}>Trip Score</Text>
+    {/* Trip Score ScoreRing Section */}
+    <Text> {'\n'}  </Text>
     <ScoreRing score={details.tripscore_value ?? 0} />
     <View style={styles.statsRow}>
-      <StatCard label="Safety Events" value={details.tripscore_value !== null ? details.tripscore_value.toString() : 'N/A'} />
+      <StatCard label="Safety Events" value={safetyEvents !== null ? safetyEvents.toString() : 'N/A'} />
       <StatCard label="Duration" value={details.trip_duration ?? 'N/A'} />
     </View>
     <View style={styles.trends}>
