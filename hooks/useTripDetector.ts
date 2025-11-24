@@ -20,8 +20,8 @@ export const useTripDetector = () => {
     null
   );
 
-  const START_SPEED_THRESHOLD = 0.4;
-  const STOP_SPEED_THRESHOLD = 1.5;
+  const START_SPEED_THRESHOLD = 5.0;
+  const STOP_SPEED_THRESHOLD = 3.0;
   const TRIP_END_DELAY = 30000; // 30 seconds for testing
 
   const { uploadTrip } = useOfflineUpload();
