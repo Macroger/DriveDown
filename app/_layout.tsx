@@ -99,7 +99,7 @@ export default function RootLayout() {
                 onBack={handleBack}
                 onLogout={handleLogoutPress}
                 title={APP_NAME}
-                showLogoutButton={!isAuthScreen}
+                showLogoutButton={!isAuthScreen && false} // "%% false" hides logout button, as it exists in account.tsx
               />
             ),
           }}
