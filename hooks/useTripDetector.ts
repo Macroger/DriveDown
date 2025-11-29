@@ -20,8 +20,23 @@ export const useTripDetector = () => {
     null
   );
 
-  const START_SPEED_THRESHOLD = 0.4;
-  const STOP_SPEED_THRESHOLD = 1.5;
+  const speedBufferRef = useRef<number[]>([]);
+  const lastSmoothedSpeedRef = useRef(0);
+  const accelConsecutiveRef = useRef({ accel: 0, decel: 0 });
+  const lastEventTimeRef = useRef<number | null>(null);
+
+  // Threshholds (adjustable)
+  const RAPID_ACCEL_THRESHOLD = 1.6; // m/s²
+  const RAPID_DECEL_THRESHOLD = -2.2; // m/s²
+  const MIN_SPEED_TO_COUNT_EVENTS = 2.0; // ignore when nearly stopped
+
+  // Smoothing + debounce settings
+  const SMOOTH_WINDOW = 3;
+  const REQUIRED_CONSECUTIVE = 2;
+  const EVENT_COOLDOWN_MS = 5000;
+
+  const START_SPEED_THRESHOLD = 5.0;
+  const STOP_SPEED_THRESHOLD = 3.0;
   const TRIP_END_DELAY = 30000; // 30 seconds for testing
 
   const { uploadTrip } = useOfflineUpload();
@@ -81,30 +96,82 @@ export const useTripDetector = () => {
         distanceInterval: 0,
       },
       async (location) => {
-        const currentSpeed = location.coords.speed ?? 0;
+        const rawSpeed = location.coords.speed ?? 0;
         const now = Date.now();
-        setSpeed(currentSpeed);
+        setSpeed(rawSpeed);
 
         // Initialize timestamp
         if (lastTimestampRef.current === null) {
           lastTimestampRef.current = now;
-          lastRawSpeedRef.current = currentSpeed;
+          speedBufferRef.current = [rawSpeed];
+          lastSmoothedSpeedRef.current = rawSpeed;
           return;
         }
 
         const deltaTime = (now - lastTimestampRef.current) / 1000;
         if (deltaTime <= 0) return;
 
+        // smoothing
+        speedBufferRef.current.push(rawSpeed);
+        if (speedBufferRef.current.length > SMOOTH_WINDOW) {
+          speedBufferRef.current.shift();
+        }
+
+        const smoothedSpeed =
+          speedBufferRef.current.reduce((a, b) => a + b, 0) /
+          speedBufferRef.current.length;
+
         const acceleration =
-          (currentSpeed - lastRawSpeedRef.current) / deltaTime;
+          (smoothedSpeed - lastSmoothedSpeedRef.current) / deltaTime;
 
-        if (acceleration >= 2.5) rapidEventsRef.current.rapidAccel += 1;
-        if (acceleration <= -3.0) rapidEventsRef.current.rapidDecel += 1;
+        const smallLag = 0.05;
+        if (acceleration >= RAPID_ACCEL_THRESHOLD - smallLag) {
+          accelConsecutiveRef.current.accel += 1;
+        } else {
+          accelConsecutiveRef.current.accel = 0;
+        }
 
+        if (acceleration <= RAPID_DECEL_THRESHOLD + smallLag) {
+          accelConsecutiveRef.current.decel += 1;
+        } else {
+          accelConsecutiveRef.current.decel = 0;
+        }
+
+        //
+        // 4) COOLDOWN CHECK
+        //
+        const lastEvent = lastEventTimeRef.current ?? 0;
+        const inCooldown = now - lastEvent < EVENT_COOLDOWN_MS;
+        const minSpeedOK = smoothedSpeed >= MIN_SPEED_TO_COUNT_EVENTS;
+
+        //
+        // 5) REGISTER EVENTS
+        //
+        if (
+          !inCooldown &&
+          minSpeedOK &&
+          accelConsecutiveRef.current.accel >= REQUIRED_CONSECUTIVE
+        ) {
+          rapidEventsRef.current.rapidAccel += 1;
+          lastEventTimeRef.current = now;
+          accelConsecutiveRef.current.accel = 0;
+          console.log("⚡ Rapid acceleration detected");
+        }
+
+        if (
+          !inCooldown &&
+          minSpeedOK &&
+          accelConsecutiveRef.current.decel >= REQUIRED_CONSECUTIVE
+        ) {
+          rapidEventsRef.current.rapidDecel += 1;
+          lastEventTimeRef.current = now;
+          accelConsecutiveRef.current.decel = 0;
+          console.log("🛑 Rapid deceleration detected");
+        }
         // Trip start
         if (
           !tripStartTimeRef.current &&
-          currentSpeed >= START_SPEED_THRESHOLD
+          smoothedSpeed >= START_SPEED_THRESHOLD
         ) {
           tripStartTimeRef.current = new Date();
           setIsDriving(true);
@@ -113,7 +180,7 @@ export const useTripDetector = () => {
         }
 
         // Trip end
-        if (tripStartTimeRef.current && currentSpeed < STOP_SPEED_THRESHOLD) {
+        if (tripStartTimeRef.current && smoothedSpeed < STOP_SPEED_THRESHOLD) {
           if (!tripEndTimeoutRef.current) {
             tripEndTimeoutRef.current = setTimeout(async () => {
               setIsDriving(false);
@@ -140,6 +207,8 @@ export const useTripDetector = () => {
               lastRawSpeedRef.current = 0;
               lastTimestampRef.current = null;
               tripEndTimeoutRef.current = null;
+              speedBufferRef.current = [];
+              accelConsecutiveRef.current = { accel: 0, decel: 0 };
             }, TRIP_END_DELAY);
           }
         } else if (tripEndTimeoutRef.current) {
@@ -147,7 +216,7 @@ export const useTripDetector = () => {
           tripEndTimeoutRef.current = null;
         }
 
-        lastRawSpeedRef.current = currentSpeed;
+        lastSmoothedSpeedRef.current = smoothedSpeed;
         lastTimestampRef.current = now;
       }
     );
@@ -169,10 +238,12 @@ export const useTripDetector = () => {
     isTrackingActive = false;
     setIsDriving(false);
     setTripStarted(false);
+
     tripStartTimeRef.current = null;
-    lastRawSpeedRef.current = 0;
     lastTimestampRef.current = null;
     rapidEventsRef.current = { rapidAccel: 0, rapidDecel: 0 };
+    speedBufferRef.current = [];
+    accelConsecutiveRef.current = { accel: 0, decel: 0 };
     console.log("🛑 Tracking stopped");
   };
 
