@@ -104,6 +104,52 @@ Driver safety scores are calculated server-side using Supabase cloud functions, 
 
 ---
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ or higher
+- npm or yarn
+- Expo CLI (included with npm)
+- A simulator (iOS), emulator (Android), or physical device with Expo Go
+
+### Installation & Running
+
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Start the development server**
+   ```bash
+   npx expo start
+   ```
+
+   You'll see options to open the app in:
+   - **Android emulator** — Press `a`
+   - **iOS simulator** — Press `i`
+   - **Expo Go** — Press `e` (on physical device)
+   - **Web browser** — Press `w`
+
+3. **(Optional) Reset to a fresh project**
+   ```bash
+   npm run reset-project
+   ```
+
+### Configuration
+
+To connect to Supabase, you'll need to configure environment variables:
+
+1. Create a `.env.local` file in the project root:
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+   ```
+
+2. Restart the development server after adding environment variables.
+
+---
+
 ## Project Status
 
 DriveDown is a **portfolio project** demonstrating full-stack mobile development. While not actively in development, the application is fully functional and serves as a reference implementation for building location-aware, offline-capable mobile applications.
